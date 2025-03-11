@@ -2,6 +2,7 @@ import { PrismaClient } from "@prisma/client/edge";
 import { withAccelerate } from "@prisma/extension-accelerate";
 import { Hono } from "hono";
 import { sign, verify } from "hono/jwt";
+import { createPostInput, updatePostInput } from "@crday07/medium-blog-common";
 
 export const blogRouter = new Hono<{
     Bindings: {
@@ -46,21 +47,28 @@ blogRouter.post('/', async (c) => {
     await prisma.$connect();
 
 	try {
-    const body = await c.req.json();
+        const body = await c.req.json();
 
-    if (!body.title || !body.content ) {
-      return c.json({ error: "Title, content, and authorId are required" }, 400);
-    }
+        if (!body.title || !body.content ) {
+        return c.json({ error: "Title, content, and authorId are required" }, 400);
+        }
 
-    const post = await prisma.post.create({
-      data: {
-        title: body.title,
-        content: body.content,
-        authorId: userId, // Ensure userId is provided in request
-      },
-    });
+        const { success } = createPostInput.safeParse(body);
+        if (!success) {
+            c.status(400);
+            return c.json({ error: "invalid input" });
+        }
 
-    return c.json({ id: post.id });
+
+        const post = await prisma.post.create({
+        data: {
+            title: body.title,
+            content: body.content,
+            authorId: userId, // Ensure userId is provided in request
+        },
+        });
+
+        return c.json({ id: post.id });
 
   } catch (e) {
     console.error("Error creating post:", e);
@@ -75,9 +83,17 @@ blogRouter.put('/', async (c) => {
 	const prisma = new PrismaClient({
 		datasourceUrl: c.env?.DATABASE_URL	,
 	}).$extends(withAccelerate());
-    await prisma.$connect();
 
+    await prisma.$connect();
 	const body = await c.req.json();
+    const { success } = updatePostInput.safeParse(body);
+	if (!success) {
+		c.status(400);
+		return c.json({ error: "invalid input" });
+	}
+
+
+
 	prisma.post.update({
 		where: {
 			id: body.id,
