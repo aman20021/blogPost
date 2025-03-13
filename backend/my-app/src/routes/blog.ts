@@ -114,10 +114,31 @@ blogRouter.get('/bulk', async (c) => {
 	}).$extends(withAccelerate());
 	await prisma.$connect();
 
-	const posts = await prisma.post.findMany();
+	// Fetch posts along with the author details
+	const posts = await prisma.post.findMany({
+		include: {
+			author: {
+				select: {
+					email: true, // Assuming the user's name field is "name"
+				},
+			},
+		},
+	});
     console.log(posts);
 
-	return c.json(posts);
+
+	const formattedPosts = posts.map(post => ({
+		id: post.id,
+		title: post.title,
+		content: post.content,
+		published: post.published,
+		authorId: post.author.email
+	}));
+
+	console.log(formattedPosts);
+
+	return c.json(formattedPosts);
+
 })
 
 
