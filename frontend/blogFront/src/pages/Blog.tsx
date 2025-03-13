@@ -13,7 +13,7 @@ export const Blog = () => {
     });
     console.log(blog)
     console.log(loading)
-    if (loading) {
+    if (loading || !blog) {
         return <div>
             <Appbar />
         
